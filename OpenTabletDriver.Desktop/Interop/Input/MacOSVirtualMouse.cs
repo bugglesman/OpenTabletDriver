@@ -363,15 +363,16 @@ namespace OpenTabletDriver.Desktop.Interop.Input
                 CGEventSetDoubleValueField(_mouseEvent, CGEventField.tabletEventTiltY, -_tilt.Value.Y / 90.0);
             }
 
-            // This uses an undocumented flag that tells the system to automatically include the event flags in the event.
-            // It's a better approach than fetching the active event flags ourselves, as doing so can introduce a race condition
-            // (e.g., if a modifier key is released after we check its status but before the event is posted).
-            // However, this flag has not effects for synthetic keyboard events, so we manually set the flags if there are modifiers bindings.
-
-            if (_keyboard.getCurrentFlags() != 0)
-                CGEventSetFlags(_mouseEvent, _keyboard.getCurrentFlags());
-            else
-                CGEventSetFlags(_mouseEvent, ~0U);
+            // Report the real modifier state. Setting every flag (~0U) and relying on undocumented
+            // substitution made WindowServer treat pen clicks as Command-clicks, which click a
+            // background window without activating it: the clicked window didn't take keyboard
+            // focus. Read the live HID modifier state at post time instead (minus the
+            // non-coalesced and device-dependent bits), as before 01e587e7.
+            const ulong NonModifierBits = 0x20000100;
+            ulong flags = _keyboard.getCurrentFlags() != 0
+                ? _keyboard.getCurrentFlags()
+                : CGEventSourceFlagsState(CGEventSourceStateHIDSystemState) & ~NonModifierBits;
+            CGEventSetFlags(_mouseEvent, flags);
         }
 
         private void PostEvent()
