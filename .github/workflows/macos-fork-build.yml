@@ -31,9 +31,19 @@ jobs:
           name: OpenTabletDriver-osx-arm64-focusfix
           path: ${{ steps.pkg.outputs.file }}
 
+      # Every build of the branch becomes a downloadable release; the action creates the tag.
       - name: Release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v0.6.8.1-focusfix${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: OpenTabletDriver 0.6.8.1 + macOS click focus fix (build ${{ github.run_number }})
+          body: |
+            Unofficial build of OpenTabletDriver 0.6.8.1 for Apple Silicon Macs, with one change:
+            pen clicks report the real modifier-key state instead of every flag set, so clicking a
+            window activates it and it receives keystrokes.
+
+            Download the .tar.gz below, double-click it to get OpenTabletDriver.app, and replace
+            the copy in Applications. First launch: right-click > Open.
           files: ${{ steps.pkg.outputs.file }}
           prerelease: true
